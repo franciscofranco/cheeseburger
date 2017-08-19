@@ -965,19 +965,21 @@ static ssize_t qpnp_hap_wf_samp_store(struct device *dev,
 	return count;
 }
 
-#if 0
 static int qpnp_hap_wf_samp_store_all(struct timed_output_dev *timed_dev,bool use_overdrive)
 {
-   struct qpnp_hap *hap = container_of(timed_dev, struct qpnp_hap,
-                    timed_dev);
-   memcpy(hap->shadow_wave_samp, use_overdrive? hap->wave_samp_overdrive:hap->wave_samp_normal, QPNP_HAP_WAV_SAMP_LEN);
-   mutex_lock(&hap->wf_lock);
-   hap->wf_update = true;
-   mutex_unlock(&hap->wf_lock);
+	struct qpnp_hap *hap = container_of(timed_dev, struct qpnp_hap,
+		timed_dev);
 
-   return 0;
+	memcpy(hap->shadow_wave_samp, use_overdrive ?
+		hap->wave_samp_overdrive : hap->wave_samp_normal,
+			QPNP_HAP_WAV_SAMP_LEN);
+
+	mutex_lock(&hap->wf_lock);
+	hap->wf_update = true;
+	mutex_unlock(&hap->wf_lock);
+
+	return 0;
 }
-#endif
 
 static ssize_t qpnp_hap_wf_s0_store(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t count)
@@ -1763,9 +1765,12 @@ static void qpnp_hap_td_enable(struct timed_output_dev *dev, int value)
 
 	spin_lock(&hap->td_lock);
 	hap->td_value = value;
+	if (value > 0)
+		qpnp_hap_wf_samp_store_all(dev,
+			(value < 11 ? 1 : 0));
 	spin_unlock(&hap->td_lock);
 
-	schedule_work(&hap->td_work);
+	queue_work(vibqueue, &hap->td_work);
 }
 
 void set_vibrate(int value)
