@@ -30,8 +30,6 @@
 #include "binder_alloc.h"
 #include "binder_trace.h"
 
-#define BINDER_MIN_ALLOC (6 * PAGE_SIZE)
-
 static DEFINE_MUTEX(binder_alloc_mmap_lock);
 
 enum {
@@ -185,9 +183,9 @@ struct binder_buffer *binder_alloc_prepare_to_free(struct binder_alloc *alloc,
 	return buffer;
 }
 
-static int __binder_update_page_range(struct binder_alloc *alloc, int allocate,
-					void *start, void *end,
-					struct vm_area_struct *vma)
+static int binder_update_page_range(struct binder_alloc *alloc, int allocate,
+				    void *start, void *end,
+				    struct vm_area_struct *vma)
 {
 	void *page_addr;
 	unsigned long user_page_addr;
@@ -285,20 +283,6 @@ err_no_vma:
 		mmput(mm);
 	}
 	return vma ? -ENOMEM : -ESRCH;
-}
-
-static int binder_update_page_range(struct binder_alloc *alloc, int allocate,
-				    void *start, void *end,
-				    struct vm_area_struct *vma)
-{
-	/*
-	 * For regular updates, move up start if needed since MIN_ALLOC pages
-	 * are always mapped
-	 */
-	if (start - alloc->buffer < BINDER_MIN_ALLOC)
-		start = alloc->buffer + BINDER_MIN_ALLOC;
-
-	return __binder_update_page_range(alloc, allocate, start, end, vma);
 }
 
 struct binder_buffer *binder_alloc_new_buf_locked(struct binder_alloc *alloc,
@@ -662,8 +646,8 @@ int binder_alloc_mmap_handler(struct binder_alloc *alloc,
 	}
 	alloc->buffer_size = vma->vm_end - vma->vm_start;
 
-	if (__binder_update_page_range(alloc, 1, alloc->buffer,
-			alloc->buffer + BINDER_MIN_ALLOC, vma)) {
+	if (binder_update_page_range(alloc, 1, alloc->buffer,
+				     alloc->buffer + PAGE_SIZE, vma)) {
 		ret = -ENOMEM;
 		failure_string = "alloc small buf";
 		goto err_alloc_small_buf_failed;
