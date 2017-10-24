@@ -895,28 +895,7 @@ static void mdss_dsi_panel_switch_mode(struct mdss_panel_data *pdata,
 			(!pdata->panel_info.send_pps_before_switch))
 		mdss_dsi_panel_dsc_pps_send(ctrl_pdata, &pdata->panel_info);
 }
-/*******************************************************************************
-remap backlight level 0-->55 to 0-->55
-remap backlight level 55-->230 to 55-->200
-remap backlight level 230-->255 to 200-->255
-********************************************************************************/
-static u32 backlight_level_remap(struct mdss_dsi_ctrl_pdata *ctrl, u32 level)
-{
-    u32 remap_level = 0;
 
-    if (ctrl->bklt_max == 255){
-        if (level < 55){
-            remap_level = level;
-        } else if ((level >= 55) && (level <= 230)){
-            remap_level = (level*29+330)/35;
-        }else{
-            remap_level = level*11/5-306;
-        }
-    } else{
-        remap_level = level;
-    }
-	return remap_level;
-}
 static void mdss_dsi_panel_bl_ctrl(struct mdss_panel_data *pdata,
 							u32 bl_level)
 {
@@ -936,10 +915,6 @@ static void mdss_dsi_panel_bl_ctrl(struct mdss_panel_data *pdata,
 	ctrl_pdata = container_of(pdata, struct mdss_dsi_ctrl_pdata,
 				panel_data);
 
-    if (ctrl_pdata->high_brightness_panel){
-       pr_debug("%s goto backlight level remap\n", __func__);
-       bl_level = backlight_level_remap(ctrl_pdata, bl_level);
-    }
 	/*
 	 * Some backlight controllers specify a minimum duty cycle
 	 * for the backlight brightness. If the brightness is less
