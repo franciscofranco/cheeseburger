@@ -2075,6 +2075,9 @@ struct task_struct {
  *
  * Do not put anything below here!
  */
+
+	/* CPU-bound kernel thread */
+	bool kthread_per_cpu;
 };
 
 #ifdef CONFIG_ARCH_WANTS_DYNAMIC_TASK_STRUCT
